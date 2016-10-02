@@ -4,22 +4,29 @@ import (
 	"./vgoapi"
 	"math"
 	"math/rand"
+	"log"
+	"time"
+	"fmt"
 )
 
 
 func main() {
-
+	startPos := [3]float32{ 0,0,0}
+	rand.Seed(time.Now().UTC().UnixNano())
+	// simulate 10 move
 	for i := 0; i < 10; i++ {
-		awrist :=  float32(rand.Int31n(300)) * (float32)(math.Pi / 180.0)
-		aelbow :=  float32(rand.Int31n(300)) * (float32)(math.Pi / 180.0)
-		ashoulder := float32(rand.Int31n(300)) * (float32)(math.Pi / 180.0)
 
-		var newPos [3]float32
-		newPos[0] = awrist
-		newPos[1] = aelbow
-		newPos[2] = ashoulder
+		awrist :=  float32(rand.Intn(300)) * (float32)(math.Pi / 180.0)
+		aelbow :=  float32(rand.Intn(300)) * (float32)(math.Pi / 180.0)
+		ashoulder := float32(rand.Intn(300)) * (float32)(math.Pi / 180.0)
 
-		vgoapi.StartSimulation(newPos)
+		fmt.Printf("wrist angle : %0.5f\taelbow : %0.5f\tashould : %0.5f\n", awrist, aelbow, ashoulder)
+
+		newPos := [3]float32{awrist, aelbow, ashoulder}
+
+		endPos, _ := vgoapi.StartSimulation(newPos)
+		dist := math.Sqrt(math.Pow(3, float64(endPos[0]) * (180.0 / math.Pi) - float64(startPos[0]) * (180.0 / math.Pi) + math.Pow(3, float64(endPos[1])* (180.0 / math.Pi) - float64(startPos[1]) * (180.0 / math.Pi))))
+		log.Printf("distance : %0.5f\n", dist)
 
 	}
 }

@@ -9,7 +9,7 @@ import "C"
 import (
 	"unsafe"
 	"fmt"
-	"time"
+	//"time"
 	"log"
 )
 
@@ -54,8 +54,8 @@ func createSimxChar(src string) *C.simxChar {
 	return (*C.simxChar)(unsafe.Pointer(&[]byte(src)[0]))
 }
 
-func createSimxFloat(src [3]float32) *C.simxFloat {
-	return (*C.simxFloat)(unsafe.Pointer(&src[0]))
+func createSimxFloat(src *[3]float32) *C.simxFloat {
+	return (*C.simxFloat)(unsafe.Pointer(&(*src)[0]))
 }
 
 func createSimxInt(i *int) *C.simxInt {
@@ -80,12 +80,17 @@ func GetRobotHandle() bool {
 }
 
 func StartSimulation(newPos [3]float32) ([3]float32, [3]float32)  {
+	//log.Printf("ange w :%0.5f\tangle e : %0.5f\tangle s : %0.5f\n", newPos[0], newPos[1], newPos[2])
+	GetRobotHandle()
+
 	C.simxStartSimulation(ClientID, opmodewait)
 
-	C.simxGetObjectPosition(ClientID, manager.robotHandle, -1, createSimxFloat(manager.robotPos), C.simxInt(opmodesteaming))
-	C.simxGetObjectOrientation(ClientID, manager.robotHandle, -1, createSimxFloat(manager.robotOrient), C.simxInt(opmodesteaming))
 
-	fmt.Printf("OLD position (x = %0.5f, y = %0.5f)\nangle x : %0.5f\ty: %0.5f\tz = %0.5f\n", manager.robotPos[0], manager.robotPos[1],
+	C.simxGetObjectPosition(ClientID, manager.robotHandle, -1, createSimxFloat(&manager.robotPos), C.simxInt(opmodesteaming))
+	C.simxGetObjectOrientation(ClientID, manager.robotHandle, -1, createSimxFloat(&manager.robotOrient), C.simxInt(opmodesteaming))
+
+
+	fmt.Printf("OLD position (x = %0.5f, y = %0.5f)\tangle x : %0.5f\ty: %0.5f\tz = %0.5f\n", manager.robotPos[0], manager.robotPos[1],
 		manager.robotOrient[0], manager.robotOrient[1], manager.robotOrient[2])
 
 	C.simxSetJointTargetPosition(ClientID, manager.wristHandle, (C.simxFloat(newPos[0])), opmodewait)
@@ -95,16 +100,16 @@ func StartSimulation(newPos [3]float32) ([3]float32, [3]float32)  {
 	var pwrist [3]float32
 	var pelbow [3]float32
 	var pshoulder [3]float32
-	C.simxGetJointPosition(ClientID, manager.wristHandle, createSimxFloat(pwrist), (opmodewait))
-	C.simxGetJointPosition(ClientID, manager.elbowHandle, createSimxFloat(pelbow), (opmodewait))
-	C.simxGetJointPosition(ClientID, manager.shoulderHandle, createSimxFloat(pshoulder), (opmodewait))
+	C.simxGetJointPosition(ClientID, manager.wristHandle, createSimxFloat(&pwrist), (opmodewait))
+	C.simxGetJointPosition(ClientID, manager.elbowHandle, createSimxFloat(&pelbow), (opmodewait))
+	C.simxGetJointPosition(ClientID, manager.shoulderHandle, createSimxFloat(&pshoulder), (opmodewait))
 	C.simxStopSimulation(ClientID, (opmodewait))
-	time.Sleep(1 * time.Second)
+	//time.Sleep(1 * time.Second)
 
-	C.simxGetObjectPosition(ClientID, manager.robotHandle, -1, createSimxFloat(manager.robotPos), (opmodebuffer))
-	C.simxGetObjectOrientation(ClientID, manager.robotHandle, -1, createSimxFloat(manager.robotOrient), (opmodebuffer))
+	C.simxGetObjectPosition(ClientID, manager.robotHandle, -1, createSimxFloat(&manager.robotPos), (opmodebuffer))
+	C.simxGetObjectOrientation(ClientID, manager.robotHandle, -1, createSimxFloat(&manager.robotOrient), (opmodebuffer))
 
-	fmt.Printf("NEW position (x = %0.5f, y = %0.5f)\nangle x : %0.5f\ty: %0.5f\tz = %0.5f\n", manager.robotPos[0], manager.robotPos[1],
+	fmt.Printf("NEW position (x = %0.5f, y = %0.5f)\tangle x : %0.5f\ty: %0.5f\tz = %0.5f\n", manager.robotPos[0], manager.robotPos[1],
 		manager.robotOrient[0], manager.robotOrient[1], manager.robotOrient[2])
 	return manager.robotPos, manager.robotOrient
 }
