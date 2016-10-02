@@ -1,21 +1,34 @@
 package main
 
 import (
-	"fmt"
+	"./vgoapi"
 	"math"
 	"math/rand"
-	"time"
-	"unsafe"
 )
 
-/*
-#cgo CFLAGS: -I./CFiles
-#cgo LDFLAGS: -L./lib -lremoteApi
-#include "extApi.h"
-*/
-import "C"
 
 func main() {
+
+	for i := 0; i < 10; i++ {
+		awrist :=  float32(rand.Int31n(300)) * (float32)(math.Pi / 180.0)
+		aelbow :=  float32(rand.Int31n(300)) * (float32)(math.Pi / 180.0)
+		ashoulder := float32(rand.Int31n(300)) * (float32)(math.Pi / 180.0)
+
+		var newPos [3]float32
+		newPos[0] = awrist
+		newPos[1] = aelbow
+		newPos[2] = ashoulder
+
+		vgoapi.StartSimulation(newPos)
+
+	}
+}
+
+
+//
+// PYTHON 2w1a.py in go
+//
+/*func main() {
 	//b := []byte("127.0.0.1")
 	id := C.simxStart((*C.simxChar)(unsafe.Pointer(&[]byte("127.0.0.1")[0])), 19997, 1, 1, 5000, 5)
 	if id != -1 {
@@ -38,14 +51,21 @@ func main() {
 
 		if true {
 			rand.Seed(int64(time.Now().Nanosecond()))
-			for i := 0; i < 3; i++ {
+			for i := 0; i < 100; i++ {
 
 				// start simulation
+				start := time.Now()
 				C.simxStartSimulation(id, opmodewait)
+				elapsed := time.Since(start)
+				log.Printf("Binomial took %s", elapsed)
+
 
 				// get RobotPosition / RobotOrientation
-				var robotPos [3]float32
-				var robotOrient [3]float32
+				var robotOrient [3]float32 = new(float32, 3)
+
+				var robotOrient [3]float32 = new(float32, 3)
+				C.simxGetObjectPosition(id, robotHandle, -1, (*C.simxFloat)(unsafe.Pointer(&(robotPos[0]))), C.simxInt(opmodesteaming))
+
 				C.simxGetObjectPosition(id, robotHandle, -1, (*C.simxFloat)(unsafe.Pointer(&(robotPos[0]))), C.simxInt(opmodesteaming))
 				C.simxGetObjectOrientation(id, robotHandle, -1, (*C.simxFloat)(unsafe.Pointer(&(robotOrient[0]))), C.simxInt(opmodesteaming))
 
@@ -73,6 +93,8 @@ func main() {
 
 
 					// Get the robot position after the movement sequence
+					var robotPos [3]float32
+
 					C.simxGetObjectPosition(id, robotHandle, -1, (*C.simxFloat)(unsafe.Pointer(&(robotPos[0]))), C.simxInt(opmodebuffer))
 					C.simxGetObjectOrientation(id, robotHandle, -1, (*C.simxFloat)(unsafe.Pointer(&(robotOrient[0]))), C.simxInt(opmodebuffer))
 
@@ -89,4 +111,4 @@ func main() {
 		fmt.Printf("Error")
 	}
 
-}
+}*/
