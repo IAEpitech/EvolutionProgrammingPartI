@@ -1,34 +1,67 @@
 package main
 
 import (
-	"./vgoapi"
 	"math"
 	"math/rand"
-	"log"
 	"time"
+	"./genalgo"
+	"./vgoapi"
 	"fmt"
 )
 
 
 func main() {
-	startPos := [3]float32{ 0,0,0}
 	rand.Seed(time.Now().UTC().UnixNano())
 	// simulate 10 move
+
+	robotPos := [3]float32 { 0.0, 0.0, 0.0}
+	robotOrient := [3]float32 { 0.0, 0.0, 0.0}
+
+
+
 	for i := 0; i < 10; i++ {
+		if (i != 0) {
+			vgoapi.InitRobot(robotPos, robotOrient)
 
-		awrist :=  float32(rand.Intn(300)) * (float32)(math.Pi / 180.0)
-		aelbow :=  float32(rand.Intn(300)) * (float32)(math.Pi / 180.0)
-		ashoulder := float32(rand.Intn(300)) * (float32)(math.Pi / 180.0)
+		}
+		for ind := 0; ind < genalgo.NB_INDIVIDUAL; ind++ {
+			//vgoapi.StartSimulation()
 
-		fmt.Printf("wrist angle : %0.5f\taelbow : %0.5f\tashould : %0.5f\n", awrist, aelbow, ashoulder)
 
-		newPos := [3]float32{awrist, aelbow, ashoulder}
+			startPos := [3]float32{ 0,0,0}
 
-		endPos, _ := vgoapi.StartSimulation(newPos)
-		dist := math.Sqrt(math.Pow(3, float64(endPos[0]) * (180.0 / math.Pi) - float64(startPos[0]) * (180.0 / math.Pi) + math.Pow(3, float64(endPos[1])* (180.0 / math.Pi) - float64(startPos[1]) * (180.0 / math.Pi))))
-		log.Printf("distance : %0.5f\n", dist)
+			var endOrient [3]float32
+			dist := 0.0
+			indivual := genalgo.Population[ind]
+			newPos := make([]float32, genalgo.NB_MOTOR)
+			var endPos [3]float32
+
+			for i := 0; i < genalgo.NB_GENE; i += genalgo.NB_MOTOR {
+				newPos[i / 3] = indivual.Gene[i]
+				newPos[i / 3] =  indivual.Gene[i + 1]
+				newPos[i / 3] = indivual.Gene[i + 2]
+
+
+				vgoapi.StartSimulation()
+				endPos, endOrient = vgoapi.StartRobotMovement(newPos)
+				vgoapi.FinishSimulation()
+				dist += math.Sqrt(math.Pow(3, float64(endPos[0]) * (180.0 / math.Pi) - float64(startPos[0]) * (180.0 / math.Pi) + math.Pow(3, float64(endPos[1])* (180.0 / math.Pi) - float64(startPos[1]) * (180.0 / math.Pi))))
+			}
+			indivual.Distance = float32(dist)
+			indivual.ObjOrient = endOrient
+			indivual.ObjPos = endPos
+
+			//vgoapi.FinishSimulation()
+		}
+		tmp := genalgo.Population[rand.Intn(genalgo.NB_INDIVIDUAL)]
+		robotOrient = tmp.ObjOrient
+		robotPos = tmp.ObjPos
+		fmt.Printf("new pos :  x = %0.5f\ty = %0.5f\tz = %0.5f\tangle x = %0.5f\ty = %0.5f\tz = %0.5f\n",
+		robotPos[0], robotPos[1], robotPos[2], robotOrient[0], robotOrient[1], robotOrient[2])
+		//genalgo.PrintPopulation()
 
 	}
+
 }
 
 

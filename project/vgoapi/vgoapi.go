@@ -8,13 +8,15 @@ package vgoapi
 import "C"
 import (
 	"unsafe"
-	"fmt"
 	//"time"
 	"log"
+//	"fmt"
+	"fmt"
 )
 
 var (
 	// opmode for Vrep functions #see Vrep documentation
+	opmodeonshot= C.simxInt(0x000000)
 	opmodewait = C.simxInt(0x010000)
 	opmodesteaming = C.simxInt(0x020000)
 	opmodebuffer = C.simxInt(0x060000)
@@ -39,6 +41,14 @@ type API struct {
 	robotHandle    C.simxInt
 	robotOrient    [3]float32
 	robotPos [3]float32
+
+	// motors
+	wrstOrient    [3]float32
+	wirstPos [3]float32
+	elbOrient    [3]float32
+	elbPos [3]float32
+	shdOrient    [3]float32
+	shdPos [3]float32
 }
 
 var manager  *API
@@ -79,19 +89,48 @@ func GetRobotHandle() bool {
 	return false
 }
 
-func StartSimulation(newPos [3]float32) ([3]float32, [3]float32)  {
+func InitRobot(newPos [3]float32, newOrient [3]float32) {
+	manager.robotPos = newPos
+	manager.robotOrient = newOrient
+//	C.simxResetDynamicObject(2)
+	C.simxSetObjectPosition(ClientID, manager.robotHandle, -1, createSimxFloat(&manager.robotPos), C.simxInt(opmodeonshot))
+	C.simxSetObjectOrientation(ClientID, manager.robotHandle, -1, createSimxFloat(&manager.robotOrient ), C.simxInt(opmodeonshot))
+
+	//C.simxSetObjectPosition(ClientID, manager.robotHandle, -1, createSimxFloat(&manager.robotPos), C.simxInt(opmodeonshot))
+	//C.simxSetObjectOrientation(ClientID, manager.robotHandle, -1, createSimxFloat(&manager.robotOrient), C.simxInt(opmodeonshot))
+
+//	C.simxGetObjectPosition(ClientID, manager.elbowHandle, -1, createSimxFloat(&manager.elbOrient), C.simxInt(opmodesteaming))
+//	C.simxGetObjectOrientation(ClientID, manager.robotHandle, -1, createSimxFloat(&manager.robotOrient), C.simxInt(opmodesteaming))
+
+//	fmt.Printf("elb x = %0.5f\ty = %0.5f\t z = 0.5f\n", manager.elbOrient[0],  manager.elbOrient[1], manager.elbOrient[2])
+
+
+
+	fmt.Printf("OLD position (x = %0.5f, y = %0.5f z = %0.5f)\tangle x : %0.5f\ty: %0.5f\tz = %0.5f\n", manager.robotPos[0], manager.robotPos[1],  manager.robotPos[2],
+		manager.robotOrient[0], manager.robotOrient[1], manager.robotOrient[2])
+}
+
+func StartSimulation() {
+	C.simxStartSimulation(ClientID, opmodewait)
+
+}
+
+func FinishSimulation() {
+	C.simxStopSimulation(ClientID, (opmodewait))
+}
+
+func StartRobotMovement(newPos []float32) ([3]float32, [3]float32)  {
 	//log.Printf("ange w :%0.5f\tangle e : %0.5f\tangle s : %0.5f\n", newPos[0], newPos[1], newPos[2])
 	GetRobotHandle()
 
-	C.simxStartSimulation(ClientID, opmodewait)
 
 
 	C.simxGetObjectPosition(ClientID, manager.robotHandle, -1, createSimxFloat(&manager.robotPos), C.simxInt(opmodesteaming))
 	C.simxGetObjectOrientation(ClientID, manager.robotHandle, -1, createSimxFloat(&manager.robotOrient), C.simxInt(opmodesteaming))
 
 
-	fmt.Printf("OLD position (x = %0.5f, y = %0.5f)\tangle x : %0.5f\ty: %0.5f\tz = %0.5f\n", manager.robotPos[0], manager.robotPos[1],
-		manager.robotOrient[0], manager.robotOrient[1], manager.robotOrient[2])
+	//fmt.Printf("OLD position (x = %0.5f, y = %0.5f z = %0.5f)\tangle x : %0.5f\ty: %0.5f\tz = %0.5f\n", manager.robotPos[0], manager.robotPos[1],  manager.robotPos[2],
+	//	manager.robotOrient[0], manager.robotOrient[1], manager.robotOrient[2])
 
 	C.simxSetJointTargetPosition(ClientID, manager.wristHandle, (C.simxFloat(newPos[0])), opmodewait)
 	C.simxSetJointTargetPosition(ClientID, manager.elbowHandle, (C.simxFloat(newPos[1])), opmodewait)
@@ -103,14 +142,13 @@ func StartSimulation(newPos [3]float32) ([3]float32, [3]float32)  {
 	C.simxGetJointPosition(ClientID, manager.wristHandle, createSimxFloat(&pwrist), (opmodewait))
 	C.simxGetJointPosition(ClientID, manager.elbowHandle, createSimxFloat(&pelbow), (opmodewait))
 	C.simxGetJointPosition(ClientID, manager.shoulderHandle, createSimxFloat(&pshoulder), (opmodewait))
-	C.simxStopSimulation(ClientID, (opmodewait))
 	//time.Sleep(1 * time.Second)
 
 	C.simxGetObjectPosition(ClientID, manager.robotHandle, -1, createSimxFloat(&manager.robotPos), (opmodebuffer))
 	C.simxGetObjectOrientation(ClientID, manager.robotHandle, -1, createSimxFloat(&manager.robotOrient), (opmodebuffer))
 
-	fmt.Printf("NEW position (x = %0.5f, y = %0.5f)\tangle x : %0.5f\ty: %0.5f\tz = %0.5f\n", manager.robotPos[0], manager.robotPos[1],
-		manager.robotOrient[0], manager.robotOrient[1], manager.robotOrient[2])
+	//fmt.Printf("NEW position (x = %0.5f, y = %0.5f)\tangle x : %0.5f\ty: %0.5f\tz = %0.5f\n", manager.robotPos[0], manager.robotPos[1],
+		//manager.robotOrient[0], manager.robotOrient[1], manager.robotOrient[2])
 	return manager.robotPos, manager.robotOrient
 }
 
