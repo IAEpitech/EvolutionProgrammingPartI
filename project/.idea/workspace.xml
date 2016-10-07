@@ -1,9 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="cdb4442a-90fd-41f8-87e2-967637a7d2a6" name="Default" comment="">
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/genalgo/genalgo.go" afterPath="$PROJECT_DIR$/genalgo/genalgo.go" />
-    </list>
+    <list default="true" id="cdb4442a-90fd-41f8-87e2-967637a7d2a6" name="Default" comment="" />
     <ignored path="project.iws" />
     <ignored path=".idea/workspace.xml" />
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
