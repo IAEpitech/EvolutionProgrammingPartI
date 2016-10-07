@@ -1,65 +1,22 @@
 package main
 
 import (
-	"math"
 	"math/rand"
 	"time"
 	"./genalgo"
-	"./vgoapi"
-	"fmt"
 )
 
 
 func main() {
 	rand.Seed(time.Now().UTC().UnixNano())
-	// simulate 10 move
 
-	robotPos := [3]float32 { 0.0, 0.0, 0.0}
-	robotOrient := [3]float32 { 0.0, 0.0, 0.0}
-
-
-
-	for i := 0; i < 10; i++ {
-		if (i != 0) {
-			vgoapi.InitRobot(robotPos, robotOrient)
-
-		}
-		for ind := 0; ind < genalgo.NB_INDIVIDUAL; ind++ {
-			//vgoapi.StartSimulation()
-
-
-			startPos := [3]float32{ 0,0,0}
-
-			var endOrient [3]float32
-			dist := 0.0
-			indivual := genalgo.Population[ind]
-			newPos := make([]float32, genalgo.NB_MOTOR)
-			var endPos [3]float32
-
-			for i := 0; i < genalgo.NB_GENE; i += genalgo.NB_MOTOR {
-				newPos[i / 3] = indivual.Gene[i]
-				newPos[i / 3] =  indivual.Gene[i + 1]
-				newPos[i / 3] = indivual.Gene[i + 2]
-
-
-				vgoapi.StartSimulation()
-				endPos, endOrient = vgoapi.StartRobotMovement(newPos)
-				vgoapi.FinishSimulation()
-				dist += math.Sqrt(math.Pow(3, float64(endPos[0]) * (180.0 / math.Pi) - float64(startPos[0]) * (180.0 / math.Pi) + math.Pow(3, float64(endPos[1])* (180.0 / math.Pi) - float64(startPos[1]) * (180.0 / math.Pi))))
-			}
-			indivual.Distance = float32(dist)
-			indivual.ObjOrient = endOrient
-			indivual.ObjPos = endPos
-
-			//vgoapi.FinishSimulation()
-		}
-		tmp := genalgo.Population[rand.Intn(genalgo.NB_INDIVIDUAL)]
-		robotOrient = tmp.ObjOrient
-		robotPos = tmp.ObjPos
-		fmt.Printf("new pos :  x = %0.5f\ty = %0.5f\tz = %0.5f\tangle x = %0.5f\ty = %0.5f\tz = %0.5f\n",
-		robotPos[0], robotPos[1], robotPos[2], robotOrient[0], robotOrient[1], robotOrient[2])
-		//genalgo.PrintPopulation()
-
+	// on boucle jusqu'a  atteindre notre nombre de generation max ou jusqu'a ce qu'on trouve le maximum de notre courbe d'evolution
+	for i := 0; i < genalgo.NB_GENERATION; i++ {
+		genalgo.Evaluate()
+		genalgo.PrintPopulation()
+		parent1, parent2 := genalgo.SelectParent()
+		genalgo.CreateChild(parent1, parent2)
+		// creation de la nouvelle population
 	}
 
 }
