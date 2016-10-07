@@ -79,7 +79,7 @@ func Evaluate() {
 			vgoapi.FinishSimulation()
 
 			// calcul de la distance
-			dist += math.Sqrt(math.Pow(3, float64(endPos[0]) * (180.0 / math.Pi) - float64(startPos[0]) * (180.0 / math.Pi) + math.Pow(3, float64(endPos[1])* (180.0 / math.Pi) - float64(startPos[1]) * (180.0 / math.Pi))))
+			dist += math.Sqrt(math.Pow(float64(endPos[0]) * (180.0 / math.Pi) - float64(startPos[0]) * (180.0 / math.Pi), 2)+ math.Pow(float64(endPos[1])* (180.0 / math.Pi) - float64(startPos[1]) * (180.0 / math.Pi), 2))
 		}
 		// on set l'individu avec les resultats de la simulation
 		indivual.Distance = float32(dist)
