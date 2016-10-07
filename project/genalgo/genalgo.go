@@ -43,7 +43,7 @@ func init() {
 }
 
 //
-// ALGO pour set la distance, la position et l'orientation final du robot pour chaque individu
+// EVALUATE : algo pour set la distance, la position et l'orientation final du robot pour chaque individu
 // et set le score de chaque individu
 // PENSER a check l'orientation du robot (= sa stabilite) pour set son score
 //
@@ -79,7 +79,7 @@ func Evaluate() {
 			vgoapi.FinishSimulation()
 
 			// calcul de la distance
-			dist += math.Sqrt(math.Pow(3, float64(endPos[0]) * (180.0 / math.Pi) - float64(startPos[0]) * (180.0 / math.Pi) + math.Pow(3, float64(endPos[1])* (180.0 / math.Pi) - float64(startPos[1]) * (180.0 / math.Pi))))
+			dist += math.Sqrt(math.Pow(float64(endPos[0]) * (180.0 / math.Pi) - (float64(startPos[0]) * (180.0 / math.Pi), 2) + math.Pow(float64(endPos[1])* (180.0 / math.Pi) - float64(startPos[1]) * (180.0 / math.Pi), 2))
 		}
 		// on set l'individu avec les resultats de la simulation
 		indivual.Distance = float32(dist)
