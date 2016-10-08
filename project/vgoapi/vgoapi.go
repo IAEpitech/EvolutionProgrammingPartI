@@ -9,6 +9,7 @@ import "C"
 import (
 	"unsafe"
 	"log"
+	"time"
 )
 
 var (
@@ -46,6 +47,8 @@ func init() {
 	if ClientID == -1 {
 		log.Print("error")
 	}
+	GetRobotHandle()
+
 }
 
 func createSimxChar(src string) *C.simxChar {
@@ -88,31 +91,36 @@ func FinishSimulation() {
 	C.simxStopSimulation(ClientID, (opmodewait))
 }
 
-func StartRobotMovement(newPos []float32) ([3]float32, [3]float32)  {
+func StartRobotMovement(newPos [9]float32) ([3]float32, [3]float32)  {
 	// on recupere l'id du robot et des motors
-	GetRobotHandle()
+	C.simxStartSimulation(ClientID, opmodewait)
 
 	// on recupere l'orientation et la position du robot
 	C.simxGetObjectPosition(ClientID, manager.robotHandle, -1, createSimxFloat(&manager.robotPos), C.simxInt(opmodesteaming))
 	C.simxGetObjectOrientation(ClientID, manager.robotHandle, -1, createSimxFloat(&manager.robotOrient), C.simxInt(opmodesteaming))
 
-	// init le mouvement de chaque moteur
-	C.simxSetJointTargetPosition(ClientID, manager.wristHandle, (C.simxFloat(newPos[0])), opmodewait)
-	C.simxSetJointTargetPosition(ClientID, manager.elbowHandle, (C.simxFloat(newPos[1])), opmodewait)
-	C.simxSetJointTargetPosition(ClientID, manager.shoulderHandle, C.simxFloat(newPos[2]), opmodewait)
-
-	// start chaque mouvement et on recupere la nouvelle position des moteurs (pour l'instant on s'en sert pas)
 	var pwrist [3]float32
 	var pelbow [3]float32
 	var pshoulder [3]float32
-	C.simxGetJointPosition(ClientID, manager.wristHandle, createSimxFloat(&pwrist), (opmodewait))
-	C.simxGetJointPosition(ClientID, manager.elbowHandle, createSimxFloat(&pelbow), (opmodewait))
-	C.simxGetJointPosition(ClientID, manager.shoulderHandle, createSimxFloat(&pshoulder), (opmodewait))
+	for i := 0; i < 3; i++ {
+		// init le mouvement de chaque moteur
+		C.simxSetJointTargetPosition(ClientID, manager.wristHandle, (C.simxFloat(newPos[0 + i * 3])), opmodewait)
+		C.simxSetJointTargetPosition(ClientID, manager.elbowHandle, (C.simxFloat(newPos[1 + i * 3])), opmodewait)
+		C.simxSetJointTargetPosition(ClientID, manager.shoulderHandle, C.simxFloat(newPos[2 + i *3]), opmodewait)
+
+		// start chaque mouvement et on recupere la nouvelle position des moteurs (pour l'instant on s'en sert pas)
+
+		C.simxGetJointPosition(ClientID, manager.wristHandle, createSimxFloat(&pwrist), (opmodewait))
+		C.simxGetJointPosition(ClientID, manager.elbowHandle, createSimxFloat(&pelbow), (opmodewait))
+		C.simxGetJointPosition(ClientID, manager.shoulderHandle, createSimxFloat(&pshoulder), (opmodewait))
+	}
+
 
 	// on recupere la nouvelle position du robot et son orientation
 	C.simxGetObjectPosition(ClientID, manager.robotHandle, -1, createSimxFloat(&manager.robotPos), (opmodebuffer))
 	C.simxGetObjectOrientation(ClientID, manager.robotHandle, -1, createSimxFloat(&manager.robotOrient), (opmodebuffer))
-
+	C.simxStopSimulation(ClientID, (opmodewait))
+	time.Sleep(200 * time.Millisecond)
 	return manager.robotPos, manager.robotOrient
 }
 

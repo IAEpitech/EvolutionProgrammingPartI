@@ -18,7 +18,7 @@ var (
 type Individual struct {
 	Distance float32
 	Fitness float32
-	Gene []float32
+	Gene [9]float32
 	ObjOrient [3]float32
 	ObjPos [3]float32
 }
@@ -36,7 +36,7 @@ func init() {
 	Population = make([]*Individual, NB_INDIVIDUAL)
 	i = 0
 	for x := 0; x < NB_INDIVIDUAL; x++ {
-		tmp := &Individual{Distance: 0.0, Fitness: 0.0, Gene:make([]float32, NB_GENE)}
+		tmp := &Individual{Distance: 0.0, Fitness: 0.0}
 		createGene(tmp)
 		Population[x] = tmp
 	}
@@ -53,34 +53,16 @@ func Evaluate() {
 		// position de depart du robot
 		startPos := [3]float32{ 0,0,0}
 
-		// distance parcouru par chaque individu
-		dist := 0.0
 
 		// on recupere l'individu courant
 		indivual := Population[ind]
-		newPos := make([]float32, NB_MOTOR)
 
-		// position et orientation du robot apres chaque simulation
-		var endPos [3]float32
-		var endOrient [3]float32
+		endPos, endOrient := vgoapi.StartRobotMovement(indivual.Gene)
 
-		// on repete (3 fois pour l instant) un movement afin d'avoir plus d'infos sur l'individu
-		for i := 0; i < NB_GENE; i += NB_MOTOR {
-			// on set la nouvelle position pour chaque motor (wrist, elbow, shoulder)
-			newPos[i / 3] = indivual.Gene[i]
-			newPos[i / 3] =  indivual.Gene[i + 1]
-			newPos[i / 3] = indivual.Gene[i + 2]
+		// distance parcouru par chaque individu
+		dist := math.Sqrt(math.Pow(float64(endPos[0]) * (180.0 / math.Pi) - float64(startPos[0]) * (180.0 / math.Pi), 2)+ math.Pow(float64(endPos[1])* (180.0 / math.Pi) - float64(startPos[1]) * (180.0 / math.Pi), 2))
+		fmt.Printf("DIST : %0.5f\n", dist)
 
-			vgoapi.StartSimulation()
-
-			// start la simulation
-			endPos, endOrient = vgoapi.StartRobotMovement(newPos)
-
-			vgoapi.FinishSimulation()
-
-			// calcul de la distance
-			dist += math.Sqrt(math.Pow(float64(endPos[0]) * (180.0 / math.Pi) - float64(startPos[0]) * (180.0 / math.Pi), 2)+ math.Pow(float64(endPos[1])* (180.0 / math.Pi) - float64(startPos[1]) * (180.0 / math.Pi), 2))
-		}
 		// on set l'individu avec les resultats de la simulation
 		indivual.Distance = float32(dist)
 		indivual.ObjOrient = endOrient
