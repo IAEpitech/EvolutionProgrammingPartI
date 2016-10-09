@@ -10,6 +10,7 @@ import (
 	"unsafe"
 	"log"
 	"time"
+	"math"
 )
 
 var (
@@ -27,8 +28,8 @@ var (
 	ElbowMotor = "ElbowMotor"
 	ShoulderMotor = "ShoulderMotor"
 	r2W1A = "2W1A"
-
-
+	LeftWheel = "LeftWheelJoint"
+	RightWheel = "RightWheelJoint"
 )
 
 type API struct {
@@ -36,8 +37,14 @@ type API struct {
 	elbowHandle    C.simxInt
 	shoulderHandle C.simxInt
 	robotHandle    C.simxInt
+	leftWheelHandle      C.simxInt
+	rightWheelHandle     C.simxInt
 	robotOrient    [3]float32
 	robotPos [3]float32
+
+	rightWheel [3]float32
+	leftWheel [3]float32
+
 }
 
 var manager  *API
@@ -47,8 +54,7 @@ func init() {
 	if ClientID == -1 {
 		log.Print("error")
 	}
-	GetRobotHandle()
-
+	getRobotHandle()
 }
 
 func createSimxChar(src string) *C.simxChar {
@@ -69,15 +75,29 @@ func getObjectHandle(name string, handle *C.simxInt) int {
 	return 0
 }
 
-func GetRobotHandle() bool {
+func getRobotHandle() bool {
 	e1 := getObjectHandle(WristMotor, &manager.wristHandle)
 	e2 := getObjectHandle(ElbowMotor, &manager.elbowHandle)
 	e3 := getObjectHandle(ShoulderMotor, &manager.shoulderHandle)
+	getObjectHandle(LeftWheel, &manager.leftWheelHandle)
+	getObjectHandle(RightWheel, &manager.rightWheelHandle)
 	getObjectHandle(r2W1A, &manager.robotHandle)
 	if e1 + e2 + e3 == 0 {
 		return true
 	}
 	return false
+}
+
+// On get les positions des wheels a la fin
+func GetWheelsEndPosition() ([3]float32, [3]float32) {
+	return manager.leftWheel, manager.rightWheel
+}
+
+// On get les positions des wheels au debut
+func GetWheelsStarPosition() ([3]float32, [3]float32) {
+	C.simxGetObjectPosition(ClientID, manager.leftWheelHandle, -1, createSimxFloat(&manager.leftWheel), (opmodesteaming))
+	C.simxGetObjectPosition(ClientID, manager.rightWheelHandle, -1, createSimxFloat(&manager.rightWheel), (opmodesteaming))
+	return manager.leftWheel, manager.rightWheel
 }
 
 // Play le logiciel
@@ -104,9 +124,9 @@ func StartRobotMovement(newPos [9]float32) ([3]float32, [3]float32)  {
 	var pshoulder [3]float32
 	for i := 0; i < 3; i++ {
 		// init le mouvement de chaque moteur
-		C.simxSetJointTargetPosition(ClientID, manager.wristHandle, (C.simxFloat(newPos[0 + i * 3])), opmodewait)
-		C.simxSetJointTargetPosition(ClientID, manager.elbowHandle, (C.simxFloat(newPos[1 + i * 3])), opmodewait)
-		C.simxSetJointTargetPosition(ClientID, manager.shoulderHandle, C.simxFloat(newPos[2 + i *3]), opmodewait)
+		C.simxSetJointTargetPosition(ClientID, manager.wristHandle, (C.simxFloat(newPos[0 + i * 3]))  * (math.Pi / 180), opmodewait)
+		C.simxSetJointTargetPosition(ClientID, manager.elbowHandle, (C.simxFloat(newPos[1 + i * 3]))  * (math.Pi / 180), opmodewait)
+		C.simxSetJointTargetPosition(ClientID, manager.shoulderHandle, C.simxFloat(newPos[2 + i *3])  * (math.Pi / 180), opmodewait)
 
 		// start chaque mouvement et on recupere la nouvelle position des moteurs (pour l'instant on s'en sert pas)
 
@@ -119,6 +139,8 @@ func StartRobotMovement(newPos [9]float32) ([3]float32, [3]float32)  {
 	// on recupere la nouvelle position du robot et son orientation
 	C.simxGetObjectPosition(ClientID, manager.robotHandle, -1, createSimxFloat(&manager.robotPos), (opmodebuffer))
 	C.simxGetObjectOrientation(ClientID, manager.robotHandle, -1, createSimxFloat(&manager.robotOrient), (opmodebuffer))
+	C.simxGetObjectPosition(ClientID, manager.leftWheelHandle, -1, createSimxFloat(&manager.leftWheel), opmodebuffer)
+	C.simxGetObjectPosition(ClientID, manager.rightWheelHandle, -1, createSimxFloat(&manager.rightWheel), opmodebuffer)
 	C.simxStopSimulation(ClientID, (opmodewait))
 	time.Sleep(200 * time.Millisecond)
 	return manager.robotPos, manager.robotOrient

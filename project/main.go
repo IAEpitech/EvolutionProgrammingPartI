@@ -14,8 +14,10 @@ func main() {
 	for i := 0; i < genalgo.NB_GENERATION; i++ {
 		genalgo.Evaluate()
 		genalgo.PrintPopulation()
-		parent1, parent2 := genalgo.SelectParent()
-		genalgo.CreateChild(parent1, parent2)
+		selection := genalgo.Selection()
+		genalgo.GeneratePopulation(selection)
+		//parent1, parent2 := genalgo.SelectParent()
+		//genalgo.CreateChild(parent1, parent2)
 		// creation de la nouvelle population
 	}
 
