@@ -4,6 +4,7 @@ import (
 	"math/rand"
 	"time"
 	"./genalgo"
+	"./logfile"
 )
 
 
@@ -20,7 +21,7 @@ func main() {
 		//genalgo.CreateChild(parent1, parent2)
 		// creation de la nouvelle population
 	}
-
+	logfile.End()
 }
 
 

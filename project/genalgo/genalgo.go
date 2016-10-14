@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math"
 	"../vgoapi"
+	"../logfile"
 )
 
 var (
@@ -18,16 +19,17 @@ var (
 	i = 0
 	bestScore float32 = 0.0
 	totalScore float32 = 0.0
+	generation = 0
 )
 
 type Individual struct {
-	ID int
-	Distance float32
-	Fitness float32
-	Gene [9]float32
-	ObjOrient [3]float32
-	ObjPos [3]float32
-	Score	float32
+	ID				int
+	Distance	float32
+	Fitness		float32
+	Gene			[9] float32
+	ObjOrient [3]	float32
+	ObjPos		[3]float32
+	Score			float32
 }
 
 
@@ -185,7 +187,6 @@ func PrintPopulation() {
 		fmt.Printf("FINISHING simlation -- Robot ID : %d\n\n", key.ID)
 
 	}
+	logfile.Write_data(generation, bestScore)
+	generation += 1
 }
-
-
-
