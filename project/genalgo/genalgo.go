@@ -9,11 +9,11 @@ import (
 )
 
 var (
-	BEST_IND_NB = 2
+	BEST_IND_NB = 5
 	NB_GENE = 9
 	NB_MOTOR = 3
-	NB_INDIVIDUAL = 5
-	NB_GENERATION = 5
+	NB_INDIVIDUAL = 10
+	NB_GENERATION = 100
 	GMUTATE_PC = 30
 	MUTATE_PC = 20
 	i = 0
@@ -95,6 +95,7 @@ func Evaluate() {
 		}
 		if indivual.Score > bestScore {
 			bestScore = indivual.Score
+			fmt.Printf("BEstcore become : %d\n", bestScore)
 		}
 		// on set l'individu avec les resultats de la simulation
 		indivual.ObjOrient = endOrient
@@ -123,6 +124,7 @@ func Selection() []*Individual {
 			if (tmpScore >= randNum) {
 				selection = append(selection, key)
 				Population = append(Population[:index], Population[index+1:]...)
+				totalScore -= key.Score
 				break
 			}
 
@@ -154,17 +156,23 @@ func GeneratePopulation(selection []*Individual) {
 	Population = make([]*Individual, NB_INDIVIDUAL)
 	i = 0
 	sellen := len(selection)
+	fmt.Printf("sellen : %d\n", sellen)
 	for x := 0; x < NB_INDIVIDUAL; x++ {
 		tmp := &Individual{ID: x, Distance: 0.0, Fitness: 0.0}
-
+		fmt.Println("New gene CREATED")
 		for g := 0; g < NB_GENE / 3; g++ {
-			rd := rand.Intn(sellen - 1)
+
+			rd := rand.Intn(sellen)
+			fmt.Printf("rand : %d\n", rd)
 			breed := selection[rd]
 			breedpos := g * (len(breed.Gene) / 3)
 			tmp.Gene[g * 3] = breed.Gene[breedpos % len(breed.Gene)]
-			tmp.Gene[g * 3 + 1] = breed.Gene[breedpos % len(breed.Gene)]
-			tmp.Gene[g * 3 + 2] = breed.Gene[breedpos % len(breed.Gene)]
+			tmp.Gene[g * 3 + 1] = breed.Gene[breedpos % len(breed.Gene) + 1]
+			tmp.Gene[g * 3 + 2] = breed.Gene[breedpos % len(breed.Gene) + 2]
+			fmt.Printf("gene 1  : %0.5f\t gene 2 : %0.5f\tgene 3 : %0.5f\n", tmp.Gene[g * 3], tmp.Gene[g * 3 + 1], tmp.Gene[g * 3 + 2])
+
 		}
+		fmt.Println("END NEW GENE\n")
 		Population[x] = tmp
 	}
 	for i := 0; i < int(NB_INDIVIDUAL * MUTATE_PC / 100); i ++ {
@@ -187,6 +195,7 @@ func PrintPopulation() {
 		fmt.Printf("FINISHING simlation -- Robot ID : %d\n\n", key.ID)
 
 	}
+	fmt.Printf("BEST SCORE : %0.5f\n\n", bestScore)
 	logfile.Write_data(generation, bestScore)
 	generation += 1
 }
