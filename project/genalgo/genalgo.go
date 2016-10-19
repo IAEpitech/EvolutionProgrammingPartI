@@ -9,17 +9,19 @@ import (
 )
 
 var (
-	BEST_IND_NB = 5
+	BEST_IND_NB = 3
 	NB_GENE = 9
 	NB_MOTOR = 3
-	NB_INDIVIDUAL = 10
-	NB_GENERATION = 100
+	NB_INDIVIDUAL = 80
+	NB_GENERATION = 10
 	GMUTATE_PC = 30
-	MUTATE_PC = 20
+	MUTATE_PC = 5
+
 	i = 0
 	bestScore float32 = 0.0
 	totalScore float32 = 0.0
 	generation = 0
+	bestIndividu  *Individual = nil
 )
 
 type Individual struct {
@@ -64,6 +66,7 @@ func init() {
 // PENSER a check l'orientation du robot (= sa stabilite) pour set son score
 //
 func Evaluate() {
+	bestIndividu = nil
 	bestScore = 0.0
 	totalScore = 0.0
 	for ind := 0; ind < NB_INDIVIDUAL; ind++ {
@@ -95,15 +98,13 @@ func Evaluate() {
 		}
 		if indivual.Score > bestScore {
 			bestScore = indivual.Score
-			fmt.Printf("BEstcore become : %d\n", bestScore)
+			bestIndividu = indivual
 		}
+		indivual.Fitness = indivual.Score / bestScore
 		// on set l'individu avec les resultats de la simulation
 		indivual.ObjOrient = endOrient
 		indivual.ObjPos = endPos
 		totalScore += indivual.Score
-	}
-	for _, key := range Population {
-		key.Score = key.Score / totalScore
 	}
 }
 
@@ -112,16 +113,15 @@ func Evaluate() {
 //
 func Selection() []*Individual {
 	var selection []*Individual
-
-	randNum := float32(math.Mod(rand.Float64(), float64(totalScore)))
-
+	selection = append(selection, bestIndividu)
 
 	for i := 0 ; i < BEST_IND_NB; i++ {
 		var tmpScore float32 = 0.0
+		randNum := float32(math.Mod(rand.Float64(), float64(totalScore)))
 
 		for index, key := range Population {
 			tmpScore = tmpScore + key.Score
-			if (tmpScore >= randNum) {
+			if (tmpScore >= randNum && key.ID != bestIndividu.ID) {
 				selection = append(selection, key)
 				Population = append(Population[:index], Population[index+1:]...)
 				totalScore -= key.Score
@@ -131,8 +131,8 @@ func Selection() []*Individual {
 		}
 	}
 
-	if len(selection) == 1 {
-		randNum = float32(math.Mod(rand.Float64(), float64(bestScore)))
+/*
+		randNum := float32(math.Mod(rand.Float64(), float64(bestScore)))
 		var tmp *Individual = nil
 		for _, key := range Population {
 			if key.Score <= randNum && tmp != nil {
@@ -144,7 +144,11 @@ func Selection() []*Individual {
 			}
 		}
 		selection = append(selection, tmp)
+	}*/
+	for _, key := range selection {
+		fmt.Printf("Parent choosen score : %0.5f\n", key.Score)
 	}
+
 	return selection
 }
 
