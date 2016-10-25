@@ -7,31 +7,45 @@ import (
 
 	"../logfile"
 	"../vgoapi"
+	"sort"
 )
 
 var (
-	BEST_IND_NB    = 3
-	NB_GENE        = 9
-	NB_MOTOR       = 3
+	NB_GENE = 9
 	F_CROSSOVER_PT = NB_GENE / 4
 	S_CROSSOVER_PT = NB_GENE / 2
-	NB_INDIVIDUAL  = 80
-	NB_GENERATION  = 10
-	GMUTATE_PC     = 30
-	MUTATE_PC      = 5
+)
 
-	i                        = 0
-	bestScore    float32     = 0.0
-	totalScore   float32     = 0.0
-	generation               = 0
-	bestIndividu *Individual = nil
+const (
+	NB_MOTOR       = 3
+	MAX_GENE_DIFF  = 10
+
+
+	NB_INDIVIDUAL  = 70
+	NB_GENERATION_MIN  = 20
+	GMUTATE_PC     = 30
+	MUTATE_PC      = 10
+	CROSSOVER_RATE = 15
+	BEST_IND_NB    = NB_INDIVIDUAL / 4
+	ADD_GENE = 0
+)
+
+var (
+	nb_generation = 0
+	bestScore float32 = 0.0
+	totalScore float32 = 0.0
+	generation = 0
+	bestIndividu  *Individual = nil
+
+	bestIndividuTotal *Individual = &Individual{ID: NB_INDIVIDUAL, Distance: 0, Fitness:0, Score:0}
+	nb_gene_dif = 0
 )
 
 type Individual struct {
 	ID        int
 	Distance  float32
 	Fitness   float32
-	Gene      [9]float32
+	Gene      []float32
 	ObjOrient [3]float32
 	ObjPos    [3]float32
 	Score     float32
@@ -45,6 +59,7 @@ func (ind *Individual) printInfos() {
 }
 
 func createGene(ind *Individual) {
+	ind.Gene = make([]float32, NB_GENE)
 	for i := 0; i != NB_GENE; i++ {
 		ind.Gene[i] = float32(rand.Intn(300))
 	}
@@ -52,7 +67,6 @@ func createGene(ind *Individual) {
 
 func init() {
 	Population = make([]*Individual, NB_INDIVIDUAL)
-	i = 0
 	for x := 0; x < NB_INDIVIDUAL; x++ {
 		tmp := &Individual{ID: x, Distance: 0.0, Fitness: 0.0}
 		createGene(tmp)
@@ -98,26 +112,103 @@ func Evaluate() {
 			bestScore = indivual.Score
 			bestIndividu = indivual
 		}
-		indivual.Fitness = indivual.Score / bestScore
+		//fmt.Printf("Score ind : %0.5f\tBestScore ind : %0.5f\n", indivual.Score, bestIndividuTotal.Score)
+		if  indivual.Score > bestIndividuTotal.Score {
+		//	fmt.Printf("ON SET Score ind : %0.5f\tBestScore ind : %0.5f\n", indivual.Score, bestIndividuTotal.Score)
+
+			//bestIndividuTotal.ID = indivual.ID
+			bestIndividuTotal.Gene = indivual.Gene
+			bestIndividuTotal.Score = indivual.Score
+			nb_gene_dif = 0
+		}
 		// on set l'individu avec les resultats de la simulation
 		indivual.ObjOrient = endOrient
 		indivual.ObjPos = endPos
 		totalScore += indivual.Score
 	}
+	if bestScore <= bestIndividuTotal.Score {
+		nb_gene_dif += 1
+	}
+	fmt.Printf("TOTAL SCORE : %0.5f\n", bestIndividuTotal.Score)
 }
 
 // SELECTION des parents selon leur score
+//
+type Indivudus []*Individual
+
+func (slice Indivudus) Len() int {
+	return len(slice)
+}
+
+func (slice Indivudus) Less(i, j int) bool {
+	return slice[i].Score > slice[j].Score;
+}
+
+func (slice Indivudus) Swap(i, j int) {
+	slice[i], slice[j] = slice[j], slice[i]
+}
+
+func contains(score float32, selection []*Individual) bool {
+	for _, key := range selection {
+		if key.Score == score {
+			return true
+		}
+	}
+	return false
+}
+
 func Selection() []*Individual {
 	var selection []*Individual
 	selection = append(selection, bestIndividu)
-
-	for i := 0; i < BEST_IND_NB; i++ {
+	for i := 1; i < BEST_IND_NB; i++ {
+		//shuffle
+		for i := range Population {
+			j := rand.Intn(i + 1)
+			Population[i], Population[j] = Population[j], Population[i]
+		}
+		randNum := float32(math.Mod(rand.Float64(), float64(totalScore)))
 		var tmpScore float32 = 0.0
+		for _, ind := range Population {
+			tmpScore = tmpScore + ind.Score
+			if tmpScore >= randNum && !contains(ind.Score, selection) {
+				selection = append(selection, ind)
+				totalScore -= ind.Score
+				//Population = append(Population[:index], Population[index+1:]...)
+				break
+			}
+
+		}
+
+	}
+
+	sort.Sort(Indivudus(Population))
+
+
+/*	for i := 0; i < BEST_IND_NB; i++ {
+
+		selection = append(selection, Population[i])
+	}*/
+
+//	selection = append(selection, bestIndividuTotal)
+/*	for i := 0 ; i < BEST_IND_NB; i++ {
+>>>>>>> Stashed changes
+		var tmpScore float32 = 0.0
+
+		// shuffle
+		for i := range Population {
+			j := rand.Intn(i + 1)
+			Population[i], Population[j] = Population[j], Population[i]
+		}
+
 		randNum := float32(math.Mod(rand.Float64(), float64(totalScore)))
 
 		for index, key := range Population {
 			tmpScore = tmpScore + key.Score
+<<<<<<< Updated upstream
 			if tmpScore >= randNum && key.ID != bestIndividu.ID {
+=======
+			if (tmpScore >= randNum && key.Score != bestIndividuTotal.Score) {
+>>>>>>> Stashed changes
 				selection = append(selection, key)
 				Population = append(Population[:index], Population[index+1:]...)
 				totalScore -= key.Score
@@ -125,7 +216,7 @@ func Selection() []*Individual {
 			}
 
 		}
-	}
+	}*/
 
 	/*
 		randNum := float32(math.Mod(rand.Float64(), float64(bestScore)))
@@ -150,57 +241,106 @@ func Selection() []*Individual {
 
 //GeneratePopulation : MERGE des parents pour creer une nouvelle population d'enfant avec system de mutation
 func GeneratePopulation(selection []*Individual) {
-	Population = make([]*Individual, NB_INDIVIDUAL)
+
+	if (nb_generation > 0 && nb_generation % 5 == 0) {
+		fmt.Println("NEW GENE ADDED")
+		NB_GENE += ADD_GENE
+		F_CROSSOVER_PT = NB_GENE / 4
+		S_CROSSOVER_PT = NB_GENE / 2
+	}
+	//Population = make([]*Individual, NB_INDIVIDUAL)
 	x := 0
 	x2 := 1
-	i = 0
 	sellen := len(selection)
-	fmt.Printf("sellen : %d\n", sellen)
+	fmt.Printf("overcross rate  : %d\n", NB_INDIVIDUAL * CROSSOVER_RATE / 100)
 	//Implementing two point crossover methods
-	for idx := 0; idx < NB_INDIVIDUAL-1; idx += 2 {
-		tmp := &Individual{ID: idx, Distance: 0.0, Fitness: 0.0}
-		tmp2 := &Individual{ID: idx + 1, Distance: 0.0, Fitness: 0.0}
+	for i:= 0; i < NB_INDIVIDUAL * CROSSOVER_RATE / 100; i++ {
+		fmt.Printf("on add ind score : %0.5f\n", selection[i].Score)
+		Population[i] = Population[i]
+		Population[i].ID = i
+	}
+
+	for idx := NB_INDIVIDUAL * CROSSOVER_RATE / 100; idx < NB_INDIVIDUAL - 1; idx += 2 {
+		tmp := &Individual{ID: idx, Distance: 0.0, Fitness: 0.0, Gene:make([]float32, NB_GENE)}
+		tmp2 := &Individual{ID: idx + 1, Distance: 0.0, Fitness: 0.0, Gene:make([]float32, NB_GENE)}
 		x = rand.Intn(sellen)
 		if x == sellen-1 {
 			x2 = 0
 		} else {
 			x2 = x + 1
 		}
-		fmt.Println("2 New Individual")
-		fmt.Println("x value :", x)
+		//fmt.Println("2 New Individual")
+		//fmt.Println("x value :", x)
 		for i := 0; i < F_CROSSOVER_PT; i++ {
-			tmp.Gene[i] = selection[x].Gene[i]
-			tmp2.Gene[i] = selection[x2].Gene[i]
+			if i >= len(selection[x].Gene) {
+				tmp.Gene[i] = selection[x].Gene[i % 3]
+			} else {
+				tmp.Gene[i] = selection[x].Gene[i]
+			}
+			if i >= len(selection[x2].Gene) {
+				tmp2.Gene[i] = selection[x2].Gene[i % 3]
+			} else {
+				tmp2.Gene[i] = selection[x2].Gene[i]
+			}
 		}
 		for i := F_CROSSOVER_PT; i < S_CROSSOVER_PT; i++ {
-			tmp.Gene[i] = selection[x2].Gene[i]
-			tmp2.Gene[i] = selection[x].Gene[i]
+			if i >= len(selection[x2].Gene) {
+				tmp.Gene[i] = selection[x2].Gene[i % 3]
+			} else {
+				tmp.Gene[i] = selection[x2].Gene[i]
+			}
+			if i >= len(selection[x].Gene) {
+				tmp2.Gene[i] = selection[x].Gene[i % 3]
+			} else {
+				tmp2.Gene[i] = selection[x].Gene[i]
+			}
 		}
 		for i := S_CROSSOVER_PT; i < NB_GENE; i++ {
-			tmp.Gene[i] = selection[x].Gene[i]
-			tmp2.Gene[i] = selection[x2].Gene[i]
+			if i >= len(selection[x].Gene) {
+				tmp.Gene[i] = selection[x].Gene[i % 3]
+			} else {
+				tmp.Gene[i] = selection[x].Gene[i]
+			}
+			if i >= len(selection[x2].Gene) {
+				tmp2.Gene[i] = selection[x2].Gene[i % 3]
+			} else {
+				tmp2.Gene[i] = selection[x2].Gene[i]
+			}
 		}
+
 
 		Population[idx] = tmp
 		Population[idx+1] = tmp2
 		PrintIndGen(tmp)
 		PrintIndGen(tmp2)
 	}
+
+
 	for i := 0; i < int(NB_INDIVIDUAL*MUTATE_PC/100); i++ {
 		ind := Population[i]
-		for j := 0; j < int(NB_GENE*GMUTATE_PC/100); j++ {
-			ind.Gene[rand.Intn(NB_GENE-1)] = float32(rand.Intn(300))
+		for j := 0; j < int(len(ind.Gene)*GMUTATE_PC/100); j++ {
+			ind.Gene[rand.Intn(len(ind.Gene)-1)] =  float32(rand.Intn(300))
+
 		}
+	}
+	fmt.Printf("SIWE POPULATION : %d\n", len(Population))
+	for _, ind := range Population {
+		fmt.Printf("NEW INDIVIDU ID : %d\t", ind.ID)
+		for i:= 0; i < len(ind.Gene); i++ {
+			fmt.Printf("%d : %0.5f\t", i, ind.Gene[i])
+		}
+		fmt.Printf("\n")
+
 	}
 
 }
 
 //PrintIndGen print all genes from one Individual
 func PrintIndGen(ind *Individual) {
-	fmt.Println("Genes for Ind :\t", ind.ID)
+/*	fmt.Println("Genes for Ind :\t", ind.ID)
 	for i := 0; i < NB_GENE/3; i++ {
 		fmt.Println("[", ind.Gene[i*3], "]\t", "[", ind.Gene[i*3+1], "]\t", "[", ind.Gene[i*3+2], "]\t")
-	}
+	}*/
 }
 
 func PrintPopulation() {
@@ -212,9 +352,21 @@ func PrintPopulation() {
 				key.ObjPos[0] * (180.0 / math.Pi), key.ObjPos[1]* (180.0 / math.Pi), key.ObjPos[2]* (180.0 / math.Pi),
 				key.ObjOrient[0]* (180.0 / math.Pi), key.ObjOrient[1]* (180.0 / math.Pi), key.ObjOrient[2]* (180.0 / math.Pi), key.Distance, key.Score)*/
 		fmt.Printf("FINISHING simlation -- Robot ID : %d\n\n", key.ID)
-
 	}
 	fmt.Printf("BEST SCORE : %0.5f\n\n", bestScore)
-	logfile.Write_data(generation, bestScore)
+	logfile.Write_data(generation, bestIndividuTotal.Score)
 	generation += 1
+}
+
+func IsEnd() bool {
+	nb_generation++
+	fmt.Printf("ALORS nb gene dif : %d et nb_generation : %d\n", nb_gene_dif, nb_generation)
+	if nb_gene_dif > MAX_GENE_DIFF  && nb_generation > NB_GENERATION_MIN {
+		return true
+	}
+	return false
+}
+
+func MoveForward() {
+	vgoapi.MoveWhile(bestIndividuTotal.Gene)
 }

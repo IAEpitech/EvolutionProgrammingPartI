@@ -3,14 +3,12 @@
     <CLASSES>
       <root url="file://$PROJECT_DIR$/../../../goget/src/github.com" />
       <root url="file://$PROJECT_DIR$/../../../goget/src/gopkg.in" />
-      <root url="file://$PROJECT_DIR$/../../../goget/src/algo" />
       <root url="file://$PROJECT_DIR$/../../../goget/src/golang.org" />
     </CLASSES>
     <JAVADOC />
     <SOURCES>
       <root url="file://$PROJECT_DIR$/../../../goget/src/github.com" />
       <root url="file://$PROJECT_DIR$/../../../goget/src/gopkg.in" />
-      <root url="file://$PROJECT_DIR$/../../../goget/src/algo" />
       <root url="file://$PROJECT_DIR$/../../../goget/src/golang.org" />
     </SOURCES>
     <excluded>

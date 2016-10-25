@@ -12,7 +12,7 @@ func main() {
 	rand.Seed(time.Now().UTC().UnixNano())
 
 	// on boucle jusqu'a  atteindre notre nombre de generation max ou jusqu'a ce qu'on trouve le maximum de notre courbe d'evolution
-	for i := 0; i < genalgo.NB_GENERATION; i++ {
+	for end := genalgo.IsEnd(); !end; {
 		genalgo.Evaluate()
 		genalgo.PrintPopulation()
 		selection := genalgo.Selection()
@@ -20,8 +20,10 @@ func main() {
 		//parent1, parent2 := genalgo.SelectParent()
 		//genalgo.CreateChild(parent1, parent2)
 		// creation de la nouvelle population
+		end = genalgo.IsEnd()
 	}
 	logfile.End()
+	genalgo.MoveForward()
 }
 
 

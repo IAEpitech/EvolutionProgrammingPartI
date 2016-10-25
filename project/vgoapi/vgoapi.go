@@ -111,7 +111,7 @@ func FinishSimulation() {
 	C.simxStopSimulation(ClientID, (opmodewait))
 }
 
-func StartRobotMovement(newPos [9]float32) ([3]float32, [3]float32)  {
+func StartRobotMovement(newPos []float32) ([3]float32, [3]float32)  {
 	// on recupere l'id du robot et des motors
 	C.simxStartSimulation(ClientID, opmodewait)
 
@@ -122,7 +122,7 @@ func StartRobotMovement(newPos [9]float32) ([3]float32, [3]float32)  {
 	var pwrist [3]float32
 	var pelbow [3]float32
 	var pshoulder [3]float32
-	for i := 0; i < 3; i++ {
+	for i := 0; i < len(newPos) / 3; i++ {
 		// init le mouvement de chaque moteur
 		C.simxSetJointTargetPosition(ClientID, manager.wristHandle, (C.simxFloat(newPos[0 + i * 3]))  * (math.Pi / 180), opmodewait)
 		C.simxSetJointTargetPosition(ClientID, manager.elbowHandle, (C.simxFloat(newPos[1 + i * 3]))  * (math.Pi / 180), opmodewait)
@@ -144,6 +144,30 @@ func StartRobotMovement(newPos [9]float32) ([3]float32, [3]float32)  {
 	C.simxStopSimulation(ClientID, (opmodewait))
 	time.Sleep(200 * time.Millisecond)
 	return manager.robotPos, manager.robotOrient
+}
+
+func MoveWhile(newPos []float32) {
+	C.simxStartSimulation(ClientID, opmodewait)
+
+	for {
+		var pwrist [3]float32
+		var pelbow [3]float32
+		var pshoulder [3]float32
+		for i := 0; i < len(newPos) / 3; i++ {
+			// init le mouvement de chaque moteur
+			C.simxSetJointTargetPosition(ClientID, manager.wristHandle, (C.simxFloat(newPos[0 + i * 3])  * (math.Pi / 180)) , opmodewait)
+			C.simxSetJointTargetPosition(ClientID, manager.elbowHandle, (C.simxFloat(newPos[1 + i * 3])  * (math.Pi / 180)) , opmodewait)
+			C.simxSetJointTargetPosition(ClientID, manager.shoulderHandle, C.simxFloat(newPos[2 + i *3]  * (math.Pi / 180)) , opmodewait)
+
+			// start chaque mouvement et on recupere la nouvelle position des moteurs (pour l'instant on s'en sert pas)
+
+			C.simxGetJointPosition(ClientID, manager.wristHandle, createSimxFloat(&pwrist), (opmodewait))
+			C.simxGetJointPosition(ClientID, manager.elbowHandle, createSimxFloat(&pelbow), (opmodewait))
+			C.simxGetJointPosition(ClientID, manager.shoulderHandle, createSimxFloat(&pshoulder), (opmodewait))
+		}
+	}
+	C.simxStopSimulation(ClientID, (opmodewait))
+
 }
 
 
