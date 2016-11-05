@@ -1,15 +1,11 @@
 package main
 
 import (
-	"math/rand"
-	"time"
 	"./genalgo"
-	"./logfile"
 )
 
 
 func main() {
-	rand.Seed(time.Now().UTC().UnixNano())
 
 	// on boucle jusqu'a  atteindre notre nombre de generation max ou jusqu'a ce qu'on trouve le maximum de notre courbe d'evolution
 	for end := genalgo.IsEnd(); !end; {
@@ -22,7 +18,6 @@ func main() {
 		// creation de la nouvelle population
 		end = genalgo.IsEnd()
 	}
-	logfile.End()
 	genalgo.MoveForward()
 }
 

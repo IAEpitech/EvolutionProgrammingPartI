@@ -1,5 +1,6 @@
 package logfile
 
+
 /*
 #cgo CFLAGS: -I../libxlsxwriter/include
 #cgo LDFLAGS: -L../libxlsxwriter/lib -lxlsxwriter
@@ -8,27 +9,25 @@ package logfile
 import "C"
 import "unsafe"
 
-type FILE struct {
+type File struct {
 	filename  *C.char
 	workbook  *C.lxw_workbook
 	worksheet *C.lxw_worksheet
 }
 
-var file *FILE
-
-func init() {
-	file = new(FILE)
-	name := "./log/log.xls"
-	file.filename = C.strdup((*C.char)(unsafe.Pointer(&[]byte(name)[0])))
+func New(filename string) *File {
+	filename =  "./log/" + filename + ".xls"
+	file := &File{filename: C.strdup((*C.char)(unsafe.Pointer(&[]byte(filename)[0])))}
 	file.workbook = C.workbook_new(file.filename)
 	file.worksheet = C.workbook_add_worksheet(file.workbook, nil)
+	return file
 }
 
-func Write_data(generation int, fitness float32) {
+func (file *File) Write_data(generation int, fitness float32) {
 	C.worksheet_write_number(file.worksheet, (C.lxw_row_t)(generation), 0, (C.double)(generation), nil)
 	C.worksheet_write_number(file.worksheet, (C.lxw_row_t)(generation), 1, (C.double)(fitness), nil)
 }
 
-func End() {
+func (file *File) Close() {
 	C.workbook_close(file.workbook)
 }
