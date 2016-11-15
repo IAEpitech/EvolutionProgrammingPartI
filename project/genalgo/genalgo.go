@@ -18,11 +18,12 @@ const (
 	F_CROSSOVER_PT = NB_GENE / 3
 	S_CROSSOVER_PT = 9
 
-	NB_INDIVIDUAL = 150
-	NB_GENERATION_MIN = 20
+	NB_INDIVIDUAL = 200
+	NB_TWEEN_RATE = 2
+	NB_GENERATION_MIN = 25
 	//GMUTATE_PC     = 15
 	MUTATE_PC = 1
-	CROSSOVER_RATE = 10
+	CROSSOVER_RATE = 5
 	BEST_IND_NB = NB_INDIVIDUAL / 5
 	LOGFILE = "basic"
 )
@@ -32,6 +33,7 @@ var fileTotal *logfile.File = logfile.New(LOGFILE + "_courbe_totalScore1")
 var fileMedian *logfile.File = logfile.New(LOGFILE + "_courbe_medianScore1")
 
 var (
+	nbScore = make(map[float32]int)
 	nb_generation = 0
 	bestScore float32 = 0.0
 	totalScore float32 = 0.0
@@ -80,8 +82,8 @@ func init() {
 }
 
 func calculateScoreFromOrientation(wrist [3]float32, elb [3]float32, shd [3]float32) float32 {
-	diff := (math.Abs(float64(shd[0] * (180.0 / math.Pi))) * 2 + math.Abs(math.Abs(float64(shd[1] * (180.0 / math.Pi))) - 90) + math.Abs(float64(shd[2] * (180.0 / math.Pi)))) * 5
-	diff += ((math.Abs(math.Abs(float64(elb[0] * (180.0 / math.Pi))) - 180)) * 2 + math.Abs(math.Abs(float64(wrist[2] * (180.0 / math.Pi))) - 180)) * 5
+	diff := (math.Abs(float64(shd[0] * (180.0 / math.Pi))) * 2 + math.Abs(math.Abs(float64(shd[1] * (180.0 / math.Pi))) - 90) + math.Abs(float64(shd[2] * (180.0 / math.Pi)))) * 2
+	diff += ((math.Abs(math.Abs(float64(elb[0] * (180.0 / math.Pi))) - 180)) * 2 + math.Abs(math.Abs(float64(wrist[2] * (180.0 / math.Pi))) - 180)) * 2
 	diff += math.Abs(math.Abs(float64(wrist[0] * (180.0 / math.Pi))) - 180) + math.Abs(float64(wrist[2] * (180.0 / math.Pi))) + math.Abs(float64(wrist[1] * (180.0 / math.Pi)))
 	return float32(diff) / 100
 }
@@ -95,6 +97,8 @@ func Evaluate() {
 	bestIndividu = nil
 	bestScore = 0.0
 	totalScore = 0.0
+	nbScore = make(map[float32]int)
+
 	for ind := 0; ind < NB_INDIVIDUAL; ind++ {
 
 		// position de depart du robot
@@ -125,9 +129,29 @@ func Evaluate() {
 		} else {
 			indivual.Score = indivual.Score * float32(180 * (math.Abs(float64(endPos[2] * (180.0 / math.Pi))) + 0.01) / 100)
 		}
+		forwardVector := [3]float64{-1, 0, 0}
+		dirVector := [3]float64{0, 0, 0}
+
+		dirVector[0] = float64(leftPosEnd[0] - leftPosStart[0])
+		dirVector[1] = float64(leftPosEnd[1] - leftPosStart[1])
+		dirVector[2] = float64(leftPosEnd[2] - leftPosStart[2])
+
+		lenghtDirVector := math.Sqrt((dirVector[0] * dirVector[0]) + (dirVector[1] * dirVector[1]) + (dirVector[2] * dirVector[2]))
+		scalarProduct := ((dirVector[0] * forwardVector[0]) + (dirVector[1] * forwardVector[1]) + (dirVector[2] * forwardVector[2]))
+		angle := scalarProduct / lenghtDirVector
+
+		if (angle >= 0.97 || angle <= -0.97){
+			//	fmt.Printf("Bon angle = %f\n\n", angle)
+			indivual.Score += float32(math.Abs(angle * 100) / 2)
+		} else if (angle <= 0.70 && angle >= -0.70){
+			angle = (math.Acos(angle)) * (180.0 / math.Pi)
+			//	fmt.Printf("Mauvais angle = %f\n\n", angle)
+			indivual.Score -= float32(angle / 2)
+		}
+/*
 		if oren != 0 {
 			indivual.Score = indivual.Score / float32(math.Pow(float64(oren), 2))
-		}
+		}*/
 		fmt.Printf("ID : %d\tScore : %0.5f\tDist : %0.5f\n", indivual.ID, indivual.Score, indivual.Distance)
 		if indivual.Score > bestScore {
 			bestScore = indivual.Score
@@ -152,6 +176,7 @@ func Evaluate() {
 						}*/
 
 		}
+		nbScore[indivual.Score] += 1
 		totalScore += indivual.Score
 	}
 	if bestScore <= bestScoreTotal {
@@ -218,11 +243,37 @@ func Selection() []*Individual {
 	return selection
 }
 
+func (ind *Individual) hasTwin() int {
+	nb_twin := 0
+	for _, key := range Population {
+		if key.ID != ind.ID {
+			for i, value := range key.Gene {
+				if value != ind.Gene[i] {
+					break
+				}
+			}
+			nb_twin++
+		}
+	}
+	return nb_twin
+}
+
+
+func sliceContains(id int, slice []int) bool {
+	for _, value := range slice {
+		if id == value {
+			return true
+		}
+	}
+	return false
+}
+
 //GeneratePopulation : MERGE des parents pour creer une nouvelle population d'enfant avec system de mutation
 func GeneratePopulation(selection []*Individual) {
 	x := 0
 	x2 := 1
 	sellen := len(selection)
+
 	fmt.Printf("overcross rate  : %d\n", NB_INDIVIDUAL * CROSSOVER_RATE / 100)
 	//Implementing two point crossover methods
 	for i := 0; i < NB_INDIVIDUAL * CROSSOVER_RATE / 100; i++ {
@@ -231,60 +282,51 @@ func GeneratePopulation(selection []*Individual) {
 		Population[i].ID = i
 	}
 
-	for idx := NB_INDIVIDUAL * CROSSOVER_RATE / 100; idx < NB_INDIVIDUAL; idx += 2 {
+
+	for idx := NB_INDIVIDUAL * CROSSOVER_RATE / 100; idx < NB_INDIVIDUAL; idx++ {
 		/*		if idx == NB_INDIVIDUAL - 1 {
 					break;
 				}*/
 		tmp := &Individual{ID: idx, Distance: 0.0, Gene:make([]float32, NB_GENE)}
-		tmp2 := &Individual{ID: idx + 1, Distance: 0.0, Gene:make([]float32, NB_GENE)}
 		x = rand.Intn(sellen)
 		x2 = x
 		for x2 == x {
 			x2 = rand.Intn(sellen)
 		}
+
+		if rand.Intn(2) == 0 {
+			x, x2 = x2, x
+		}
 		for i := 0; i < F_CROSSOVER_PT; i++ {
-			if i >= len(selection[x].Gene) {
-				tmp.Gene[i] = selection[x].Gene[i % 3]
-			} else {
-				tmp.Gene[i] = selection[x].Gene[i]
-			}
-			if i >= len(selection[x2].Gene) {
-				tmp2.Gene[i] = selection[x2].Gene[i % 3]
-			} else {
-				tmp2.Gene[i] = selection[x2].Gene[i]
-			}
-		}
-		for i := F_CROSSOVER_PT; i < S_CROSSOVER_PT; i++ {
-			if i >= len(selection[x2].Gene) {
-				tmp.Gene[i] = selection[x2].Gene[i % 3]
-			} else {
-				tmp.Gene[i] = selection[x2].Gene[i]
-			}
-			if i >= len(selection[x].Gene) {
-				tmp2.Gene[i] = selection[x].Gene[i % 3]
-			} else {
-				tmp2.Gene[i] = selection[x].Gene[i]
-			}
-		}
-		for i := S_CROSSOVER_PT; i < NB_GENE; i++ {
-			if i >= len(selection[x].Gene) {
-				tmp.Gene[i] = selection[x].Gene[i % 3]
-			} else {
-				tmp.Gene[i] = selection[x].Gene[i]
-			}
-			if i >= len(selection[x2].Gene) {
-				tmp2.Gene[i] = selection[x2].Gene[i % 3]
-			} else {
-				tmp2.Gene[i] = selection[x2].Gene[i]
-			}
+			tmp.Gene[i] = selection[x].Gene[i]
 		}
 
-		Population[idx] = tmp
-		if idx != NB_INDIVIDUAL - 1 {
-			Population[idx + 1] = tmp2
+		if rand.Intn(2) == 0 {
+			x, x2 = x2, x
 		}
+		for i := F_CROSSOVER_PT; i < S_CROSSOVER_PT; i++ {
+			tmp.Gene[i] = selection[x2].Gene[i]
+		}
+
+		if rand.Intn(2) == 0 {
+			x, x2 = x2, x
+		}
+		for i := S_CROSSOVER_PT; i < NB_GENE; i++ {
+			tmp.Gene[i] = selection[x].Gene[i]
+
+		}
+
+/*		nbtwin := tmp.hasTwin()
+		if nbtwin > 0 && nbtwin < 3 && len(twinsList) <= NB_INDIVIDUAL * NB_TWEEN_RATE / 100 {
+			if contains(tmp.id, twinsList)
+			twinsList = append(twinsList, tmp.ID)
+		}
+		if nbtwin > 0 &&  len(twinsList) > NB_INDIVIDUAL * NB_TWEEN_RATE / 100 {
+			idx--
+			break
+		}*/
+		Population[idx] = tmp
 		PrintIndGen(tmp)
-		PrintIndGen(tmp2)
 	}
 
 	for index1, ind := range Population {
@@ -306,6 +348,19 @@ func GeneratePopulation(selection []*Individual) {
 		}
 	}
 	Population[0], Population[NB_INDIVIDUAL - 1] = Population[NB_INDIVIDUAL - 1], Population[0]
+
+	/*	var twinsList []int
+		for _, ind := range Population {
+			nbtwin := ind.hasTwin()
+			if nbtwin > 0 && nbtwin < 3 && len(twinsList) <= NB_INDIVIDUAL * NB_TWEEN_RATE / 100 {
+				twinsList = append(twinsList, ind.ID)
+			}
+			if nbtwin > 0 &&  len(twinsList) > NB_INDIVIDUAL * NB_TWEEN_RATE / 100 {
+				for nbtwin > 0 {
+
+				}
+			}
+		}*/
 
 	fmt.Printf("SIWE POPULATION : %d\n", len(Population))
 	for _, ind := range Population {
@@ -330,6 +385,11 @@ func PrintIndGen(ind *Individual) {
 func PrintPopulation() {
 	sort.Sort(Indivudus(Population))
 	fmt.Printf("BEST SCORE : %0.5f\n\n", bestScore)
+	for key, _ := range nbScore {
+		fmt.Printf("SCORE : %0.5f\tValue : %d\n", key, nbScore[key])
+	}
+	fmt.Printf("SIZE SCORE  : %d\n\n", len(nbScore))
+
 	fileBest.Write_data(generation, bestIndividuTotal.Score)
 	fileTotal.Write_data(generation, totalScore)
 	fileMedian.Write_data(generation, Population[NB_INDIVIDUAL / 2].Score)
@@ -338,11 +398,11 @@ func PrintPopulation() {
 
 func IsEnd() bool {
 	nb_generation++
-	fmt.Printf("ALORS nb gene dif : %d et nb_generation : %d\tTotal score : %0.5f\n", nb_gene_dif, nb_generation, bestIndividuTotal.Score)
+	fmt.Printf("ALORS nb generation dif : %d et nb_generation : %d\tTotal score : %0.5f\n", nb_gene_dif, nb_generation, bestIndividuTotal.Score)
 	for i := 0; i < len(bestIndividuTotal.Gene); i++ {
 		fmt.Printf("%d : %0.5f\t", i, bestIndividuTotal.Gene[i])
 	}
-	if nb_gene_dif >= MAX_GENE_DIFF  && nb_generation >= NB_GENERATION_MIN {
+	if nb_gene_dif >= MAX_GENE_DIFF  && nb_generation >= NB_GENERATION_MIN && bestScoreTotal > 500 {
 		fileBest.Close()
 		fileMedian.Close()
 		fileTotal.Close()

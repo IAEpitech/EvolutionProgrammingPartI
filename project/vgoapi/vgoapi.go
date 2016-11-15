@@ -151,7 +151,7 @@ func StartRobotMovement(newPos []float32) ([3]float32, [3]float32)  {
 	C.simxGetObjectPosition(ClientID, manager.robotHandle, -1, createSimxFloat(&manager.robotPos), C.simxInt(opmodesteaming))
 	C.simxGetObjectOrientation(ClientID, manager.robotHandle, -1, createSimxFloat(&manager.robotOrient), C.simxInt(opmodesteaming))
 
-	for x := 0; x < 2; x++ {
+	for x := 0; x < 3; x++ {
 		var pwrist [3]float32
 		var pelbow [3]float32
 		var pshoulder [3]float32
